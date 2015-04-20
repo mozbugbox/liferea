@@ -154,7 +154,7 @@ db_get_schema_version (void)
 	return schemaVersion;
 }
 
-static void
+void
 db_begin_transaction (void)
 {
 	gchar	*sql, *err;
@@ -168,7 +168,7 @@ db_begin_transaction (void)
 	sqlite3_free (err);
 }
 
-static void
+void
 db_end_transaction (void) 
 {
 	gchar	*sql, *err;
@@ -1005,15 +1005,21 @@ db_item_search_folders_update (itemPtr item)
 }
 
 void
-db_item_update (itemPtr item) 
+db_item_update (itemPtr item)
+{
+	db_begin_transaction ();
+	db_item_update_quick (item);
+	db_end_transaction ();
+}
+
+void
+db_item_update_quick (itemPtr item)
 {
 	sqlite3_stmt	*stmt;
 	gint		res;
 	
 	debug2 (DEBUG_DB, "update of item \"%s\" (id=%lu)", item->title, item->id);
 	debug_start_measurement (DEBUG_DB);
-	
-	db_begin_transaction ();
 
 	if (!item->id) {
 		db_item_set_id (item);
@@ -1049,8 +1055,6 @@ db_item_update (itemPtr item)
 
 	db_item_metadata_update (item);
 	db_item_search_folders_update (item);
-
-	db_end_transaction ();
 
 	debug_end_measurement (DEBUG_DB, "item update");
 }
